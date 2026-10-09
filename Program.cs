@@ -35,7 +35,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AngularPolicy", policy =>
         policy.WithOrigins(
             "http://localhost:4200",
-            "https://ecommersfinalfrond-production.up.railway.app"
+            "https://ecommersfinalfrond-production.up.railway.app",
+            "https://sportzone.up.railway.app"
         )
         .AllowAnyHeader()
         .AllowAnyMethod());
