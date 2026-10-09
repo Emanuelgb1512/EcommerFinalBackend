@@ -457,3 +457,5 @@ E:\AplicacionWeb\Backend\EcommerFinalBackend\obj\Debug\net10.0\EcommerceAPI.pdb
 E:\AplicacionWeb\Backend\EcommerFinalBackend\obj\Debug\net10.0\EcommerceAPI.genruntimeconfig.cache
 E:\AplicacionWeb\Backend\EcommerFinalBackend\obj\Debug\net10.0\ref\EcommerceAPI.dll
 E:\AplicacionWeb\Backend\EcommerFinalBackend\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
+E:\AplicacionWeb\Backend\EcommerFinalBackend\bin\Debug\net10.0\package-lock.json
+E:\AplicacionWeb\Backend\EcommerFinalBackend\bin\Debug\net10.0\package.json

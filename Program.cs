@@ -92,6 +92,34 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+//temporal
+var connection = app.Configuration
+    .GetConnectionString("DefaultConnection");
+
+app.Logger.LogInformation(
+    "¿Está configurada DefaultConnection?: {Configured}",
+    !string.IsNullOrWhiteSpace(connection)
+);
+
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    var conectado = await db.Database.CanConnectAsync();
+
+    app.Logger.LogInformation(
+        "Resultado de prueba de conexión a MySQL: {Connected}",
+        conectado
+    );
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Falló la prueba de conexión a MySQL");
+}
+
+//temporal
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
