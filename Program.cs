@@ -28,6 +28,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICarritoService, CarritoService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 
+builder.Services.AddMemoryCache();
 // CORS
 builder.Services.AddCors(options =>
 {

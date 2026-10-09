@@ -17,6 +17,11 @@ namespace EcommerceAPI.Models.Dtos
         [MinLength(6, ErrorMessage = "La contraseña debe tener mínimo 6 caracteres.")]
         public string Password { get; set; } = string.Empty;
     }
+    public class RegisterAdminDto : RegisterDto
+    {
+        [Required(ErrorMessage = "La clave de administrador es obligatoria.")]
+        public string ClaveAdmin { get; set; } = string.Empty;
+    }
 
     public class LoginDto
     {

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace EcommerceAPI.Services
@@ -19,6 +20,7 @@ namespace EcommerceAPI.Services
         private readonly JwtSettings _jwt;
         private readonly GoogleSettings _google;
         private readonly string? _adminEmail;
+        private readonly string? _claveAdmin;
         private readonly PasswordHasher<Usuario> _hasher = new();
 
         public AuthService(AppDbContext context, IOptions<JwtSettings> jwt,
@@ -28,26 +30,22 @@ namespace EcommerceAPI.Services
             _jwt = jwt.Value;
             _google = google.Value;
             _adminEmail = config["AdminEmail"];
+            _claveAdmin = config["AdminRegistrationKey"];
         }
 
-        public async Task<AuthResponseDto> RegistrarAsync(RegisterDto dto)
+        public Task<AuthResponseDto> RegistrarAsync(RegisterDto dto)
+            => CrearCuentaAsync(dto, forzarAdmin: false);
+
+        public async Task<AuthResponseDto> RegistrarAdminAsync(RegisterAdminDto dto)
         {
-            var email = dto.Email.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(_claveAdmin))
+                throw new AppException("El registro de administradores no está habilitado.", 503);
 
-            if (await _context.Usuario.AnyAsync(u => u.Email == email))
-                throw new AppException("Ya existe una cuenta con ese correo.", 409);
+            // Primero la clave; solo después se revisa si el correo existe
+            if (!ClaveValida(dto.ClaveAdmin))
+                throw new AppException("La clave de administrador no es correcta.", 403);
 
-            var usuario = new Usuario
-            {
-                Nombre = dto.Nombre.Trim(),
-                Email = email,
-                Rol = EsAdminEmail(email) ? Roles.Admin : Roles.Cliente
-            };
-            usuario.Password = _hasher.HashPassword(usuario, dto.Password);
-
-            _context.Usuario.Add(usuario);
-            await _context.SaveChangesAsync();
-            return Respuesta(usuario);
+            return await CrearCuentaAsync(dto, forzarAdmin: true);
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -120,6 +118,34 @@ namespace EcommerceAPI.Services
         }
 
         // ===== Auxiliares =====
+        private async Task<AuthResponseDto> CrearCuentaAsync(RegisterDto dto, bool forzarAdmin)
+        {
+            var email = dto.Email.Trim().ToLowerInvariant();
+
+            if (await _context.Usuario.AnyAsync(u => u.Email == email))
+                throw new AppException("Ya existe una cuenta con ese correo.", 409);
+
+            var usuario = new Usuario
+            {
+                Nombre = dto.Nombre.Trim(),
+                Email = email,
+                Rol = forzarAdmin || EsAdminEmail(email) ? Roles.Admin : Roles.Cliente
+            };
+            usuario.Password = _hasher.HashPassword(usuario, dto.Password);
+
+            _context.Usuario.Add(usuario);
+            await _context.SaveChangesAsync();
+            return Respuesta(usuario);
+        }
+
+        // Comparación en tiempo constante: no filtra información por el tiempo de respuesta
+        private bool ClaveValida(string? intento)
+        {
+            var a = SHA256.HashData(Encoding.UTF8.GetBytes(intento ?? string.Empty));
+            var b = SHA256.HashData(Encoding.UTF8.GetBytes(_claveAdmin!));
+            return CryptographicOperations.FixedTimeEquals(a, b);
+        }
+
         private bool EsAdminEmail(string email) =>
             !string.IsNullOrWhiteSpace(_adminEmail) &&
             string.Equals(email, _adminEmail.Trim(), StringComparison.OrdinalIgnoreCase);
