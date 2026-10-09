@@ -1,12 +1,14 @@
 ﻿using EcommerceAPI.Models;
+using EcommerceAPI.Models.Dtos;
+
 namespace EcommerceAPI.Interfaces
 {
     public interface IProductoRepository
     {
-        Task<List<Producto>> GetAllAsync();
-        Task<Producto?> GetByIdAsync(int id);
-        Task<Producto> AddAsync(Producto producto, int userid);
-        Task UpdateAsync(Producto producto, int userid);
-        Task DeleteAsync(Producto producto, int userid);
+        Task<PagedResult<ProductoDto>> BuscarAsync(ProductoFiltroDto filtro, bool incluirInactivos);
+        Task<ProductoDto?> GetDtoByIdAsync(int id);
+        Task<ProductoDto> CrearAsync(ProductoGuardarDto dto, int userId);
+        Task<ProductoDto?> ActualizarAsync(int id, ProductoGuardarDto dto);
+        Task<bool> EliminarAsync(int id);
     }
 }

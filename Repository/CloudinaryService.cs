@@ -21,7 +21,23 @@ namespace EcommerceAPI.Services
             _cloudinary.Api.Secure = true;
         }
 
-        public async Task<(string Url, string PublicId)> UploadImageAsync(string base64Image)
+        // Imágenes de productos
+        public Task<(string Url, string PublicId)> UploadImageAsync(string base64Image)
+            => SubirAsync(base64Image, "sportzone/productos",
+                new Transformation().Width(800).Height(800).Crop("limit"));
+
+        // Fotos de perfil: cuadradas, centradas en la cara
+        public Task<(string Url, string PublicId)> UploadAvatarAsync(string base64Image)
+            => SubirAsync(base64Image, "sportzone/perfiles",
+                new Transformation().Width(400).Height(400).Crop("fill").Gravity("face"));
+
+        public async Task DeleteImageAsync(string publicId)
+        {
+            await _cloudinary.DestroyAsync(new DeletionParams(publicId));
+        }
+
+        private async Task<(string Url, string PublicId)> SubirAsync(
+            string base64Image, string carpeta, Transformation transformacion)
         {
             if (string.IsNullOrWhiteSpace(base64Image))
                 throw new ArgumentException("La imagen no puede estar vacía.");
@@ -37,9 +53,9 @@ namespace EcommerceAPI.Services
 
                 var uploadParams = new ImageUploadParams
                 {
-                    File = new FileDescription("producto", stream),
-                    Folder = "sportzone/productos",
-                    Transformation = new Transformation().Width(800).Height(800).Crop("limit")
+                    File = new FileDescription("imagen", stream),
+                    Folder = carpeta,
+                    Transformation = transformacion
                 };
 
                 var result = await _cloudinary.UploadAsync(uploadParams);
@@ -53,11 +69,6 @@ namespace EcommerceAPI.Services
             {
                 throw new ArgumentException("El formato de la imagen Base64 no es válido.");
             }
-        }
-
-        public async Task DeleteImageAsync(string publicId)
-        {
-            await _cloudinary.DestroyAsync(new DeletionParams(publicId));
         }
     }
 }

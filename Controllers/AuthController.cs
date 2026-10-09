@@ -5,25 +5,26 @@ using Microsoft.AspNetCore.Mvc;
 namespace EcommerceAPI.Controllers
 {
     [ApiController]
-    [Route("{controller}")]
-    public class AuthController : Controller
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        private readonly IUsuarioRepository _usuarioRepository;
-        public AuthController(IUsuarioRepository usuarioRepository)
+        private readonly IAuthService _auth;
+
+        public AuthController(IAuthService auth)
         {
-            _usuarioRepository = usuarioRepository;
+            _auth = auth;
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> Register([FromBody] UsuarioDto item)
-        {
-            return Ok(await _usuarioRepository.Registrar(item));
-        }
+        public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto dto)
+            => Ok(await _auth.RegistrarAsync(dto));
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto item)
-        {
-            return Ok(await _usuarioRepository.Login(item));
-        }
+        public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto dto)
+            => Ok(await _auth.LoginAsync(dto));
+
+        [HttpPost("Google")]
+        public async Task<ActionResult<AuthResponseDto>> Google([FromBody] GoogleLoginDto dto)
+            => Ok(await _auth.GoogleAsync(dto));
     }
 }

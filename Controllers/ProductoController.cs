@@ -1,9 +1,9 @@
-﻿using EcommerceAPI.Interfaces;
+﻿using EcommerceAPI.Extensions;
+using EcommerceAPI.Interfaces;
 using EcommerceAPI.Models;
 using EcommerceAPI.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace EcommerceAPI.Controllers
 {
@@ -12,127 +12,59 @@ namespace EcommerceAPI.Controllers
     public class ProductoController : ControllerBase
     {
         private readonly IProductoRepository _repository;
-        private readonly ICloudinaryService _cloudinary;
 
-        public ProductoController(IProductoRepository repository, ICloudinaryService cloudinary)
+        public ProductoController(IProductoRepository repository)
         {
             _repository = repository;
-            _cloudinary = cloudinary;
         }
 
+        // Público. Si el usuario es Admin puede pedir también los inactivos.
         [HttpGet("Obtener-Producto")]
-        public async Task<ActionResult<List<Producto>>> GetAll()
+        public async Task<ActionResult<PagedResult<ProductoDto>>> GetAll(
+            [FromQuery] ProductoFiltroDto filtro, [FromQuery] bool incluirInactivos = false)
         {
-            var productos = await _repository.GetAllAsync();
-            return Ok(productos);
+            var verInactivos = incluirInactivos && User.IsInRole(Roles.Admin);
+            return Ok(await _repository.BuscarAsync(filtro, verInactivos));
         }
 
-        [HttpGet("Obtener-Producto/{id}")]
-        public async Task<ActionResult<Producto>> GetById([FromRoute]int id)
+        [HttpGet("Obtener-Producto/{id:int}")]
+        public async Task<ActionResult<ProductoDto>> GetById(int id)
         {
-            var producto = await _repository.GetByIdAsync(id);
-            if (producto == null)
+            var producto = await _repository.GetDtoByIdAsync(id);
+            if (producto == null || (!producto.Activo && !User.IsInRole(Roles.Admin)))
                 return NotFound(new { mensaje = "Producto no encontrado" });
 
             return Ok(producto);
         }
 
-        [Authorize]
+        [Authorize(Roles = Roles.Admin)]
         [HttpPost("Crear-producto")]
-        public async Task<ActionResult<Producto>> Create([FromBody] Producto producto)
+        public async Task<ActionResult<ProductoDto>> Create([FromBody] ProductoGuardarDto dto)
         {
-            var error = Validar(producto);
-            if (error != null)
-                return BadRequest(new { mensaje = error });
-
-            producto.Id = 0;
-            producto.ImagenUrl = null;
-            producto.ImagenPublicId = null;
-            
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var creado = await _repository.AddAsync(producto, userId);
+            var creado = await _repository.CrearAsync(dto, User.GetUserId());
             return CreatedAtAction(nameof(GetById), new { id = creado.Id }, creado);
         }
 
-        [Authorize]
-        [HttpPut("Actualizar-Producto/{id}")]
-        public async Task<IActionResult> Update([FromRoute]int id, [FromBody] Producto datos)
+        [Authorize(Roles = Roles.Admin)]
+        [HttpPut("Actualizar-Producto/{id:int}")]
+        public async Task<ActionResult<ProductoDto>> Update(int id, [FromBody] ProductoGuardarDto dto)
         {
-            var producto = await _repository.GetByIdAsync(id);
-            if (producto == null)
+            var actualizado = await _repository.ActualizarAsync(id, dto);
+            if (actualizado == null)
                 return NotFound(new { mensaje = "Producto no encontrado" });
 
-            var error = Validar(datos);
-            if (error != null)
-                return BadRequest(new { mensaje = error });
-
-            producto.Nombre = datos.Nombre;
-            producto.Descripcion = datos.Descripcion;
-            producto.Precio = datos.Precio;
-            producto.Stock = datos.Stock;
-
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _repository.UpdateAsync(producto, userId);
-            return Ok(producto);
+            return Ok(actualizado);
         }
 
-        [Authorize]
-        [HttpDelete("Eliminar-producto/{id}")]
-        public async Task<IActionResult> Delete([FromRoute]int id)
+        [Authorize(Roles = Roles.Admin)]
+        [HttpDelete("Eliminar-producto/{id:int}")]
+        public async Task<IActionResult> Delete(int id)
         {
-            var producto = await _repository.GetByIdAsync(id);
-            if (producto == null)
+            var eliminado = await _repository.EliminarAsync(id);
+            if (!eliminado)
                 return NotFound(new { mensaje = "Producto no encontrado" });
 
-            if (!string.IsNullOrEmpty(producto.ImagenPublicId))
-                await _cloudinary.DeleteImageAsync(producto.ImagenPublicId);
-
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _repository.DeleteAsync(producto, userId);
             return NoContent();
-        }
-
-        [Authorize]
-        [HttpPost("Imagen del producto/{id}")]
-        public async Task<IActionResult> SubirImagen(int id, [FromBody] ImagenDto dto)
-        {
-            var producto = await _repository.GetByIdAsync(id);
-            if (producto == null)
-                return NotFound(new { mensaje = "Producto no encontrado" });
-
-            if (string.IsNullOrWhiteSpace(dto.ImagenBase64))
-                return BadRequest(new { mensaje = "Debes enviar la imagen en Base64" });
-
-            try
-            {
-                if (!string.IsNullOrEmpty(producto.ImagenPublicId))
-                    await _cloudinary.DeleteImageAsync(producto.ImagenPublicId);
-
-                var (url, publicId) = await _cloudinary.UploadImageAsync(dto.ImagenBase64);
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-
-                producto.ImagenUrl = url;
-                producto.ImagenPublicId = publicId;
-                await _repository.UpdateAsync(producto, userId);
-
-                return Ok(producto);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { mensaje = ex.Message });
-            }
-        }
-
-        private static string? Validar(Producto p)
-        {
-            if (string.IsNullOrWhiteSpace(p.Nombre))
-                return "El nombre no puede estar vacío";
-            if (p.Precio < 0)
-                return "El precio no puede ser negativo";
-            if (p.Stock < 0)
-                return "El stock no puede ser negativo";
-            return null;
         }
     }
 }

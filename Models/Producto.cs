@@ -9,7 +9,13 @@
         public int Stock { get; set; }
         public string? ImagenUrl { get; set; }
         public string? ImagenPublicId { get; set; }
-        public int UsuarioId { get; set; }
+        public bool Activo { get; set; } = true;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        public int? CategoriaId { get; set; }
+        public Categoria? Categoria { get; set; }
+
+        public int UsuarioId { get; set; }          
         public Usuario? Usuario { get; set; }
     }
 }
