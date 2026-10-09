@@ -119,6 +119,29 @@ catch (Exception ex)
 }
 
 //temporal
+//temporal
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    var categorias = await db.Database
+        .SqlQueryRaw<int>("SELECT COUNT(*) AS `Value` FROM `Categoria`")
+        .SingleAsync();
+
+    app.Logger.LogInformation(
+        "Prueba de tabla Categoria correcta. Registros: {Count}",
+        categorias
+    );
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(
+        ex,
+        "Falló la consulta de prueba a la tabla Categoria"
+    );
+}
+//temporal
 
 if (app.Environment.IsDevelopment())
 {
