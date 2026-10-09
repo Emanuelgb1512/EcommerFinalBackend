@@ -33,11 +33,13 @@ builder.Services.AddMemoryCache();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularPolicy", policy =>
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+        policy.WithOrigins(
+            "http://localhost:4200",
+            "https://ecommersfinalfrond-production.up.railway.app"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 });
-
 // Controllers: los errores de validación salen como { mensaje: "..." }
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
