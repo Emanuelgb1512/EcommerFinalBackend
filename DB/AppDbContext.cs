@@ -1,5 +1,6 @@
 ﻿using EcommerceAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace EcommerceAPI.DB
 {
@@ -78,6 +79,15 @@ namespace EcommerceAPI.DB
                 e.Property(p => p.Monto).HasColumnType("decimal(18,2)");
                 e.HasOne(p => p.Pedido).WithOne(p => p.Pago).HasForeignKey<Pago>(p => p.PedidoId);
             });
+
+            mb.Entity<Categoria>().ToTable("categoria");
+            mb.Entity<Producto>().ToTable("producto");
+            mb.Entity<Usuario>().ToTable("usuario");
+            mb.Entity<Carrito>().ToTable("carrito");
+            mb.Entity<DetalleCarrito>().ToTable("detallecarrito");
+            mb.Entity<Pedido>().ToTable("pedido");
+            mb.Entity<DetallePedido>().ToTable("detallepedido");
+            mb.Entity<Pago>().ToTable("pago");
         }
     }
 }
